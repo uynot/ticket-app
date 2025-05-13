@@ -14,7 +14,7 @@ const ticketSchema = new mongoose.Schema(
 			type: String,
 			required: true,
 		},
-		roll: {
+		row: {
 			type: String,
 			required: true,
 		},
@@ -72,6 +72,22 @@ const ticketSchema = new mongoose.Schema(
 			default: 0,
 			required: false,
 		},
+		isDeleted: {
+			type: Boolean,
+			default: false,
+			required: true,
+		},
+		deletedBy: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "User",
+			default: null,
+			required: false,
+		},
+		deletedAt: {
+			type: Date,
+			default: null,
+			required: false,
+		},
 		createdBy: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "User",
@@ -80,6 +96,7 @@ const ticketSchema = new mongoose.Schema(
 		updatedBy: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "User",
+			required: false,
 		},
 	},
 	{

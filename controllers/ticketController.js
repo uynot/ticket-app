@@ -1,9 +1,17 @@
 const Ticket = require("../models/Ticket");
 
+const getUserId = (req) => req.user?._id || null;
+
 // POST /api/tickets
 const createTicket = async (req, res) => {
 	try {
-		const ticket = await Ticket.create(req.body);
+		const ticketData = {
+			...req.body,
+			createdBy: getUserId(req),
+			updatedBy: getUserId(req),
+		};
+
+		const ticket = await Ticket.create(ticketData);
 		res.status(201).json(ticket);
 	} catch (error) {
 		res.status(400).json({ message: error.message });
@@ -13,12 +21,12 @@ const createTicket = async (req, res) => {
 // GET /api/tickets
 const getAllTickets = async (req, res) => {
 	try {
-		const query = {};
+		const query = { isDeleted: false };
 		const allowedFilters = [
 			"performer",
 			"date",
 			"location",
-			"roll",
+			"row",
 			"seat",
 			"isConsecutive",
 			"price",
@@ -40,7 +48,7 @@ const getAllTickets = async (req, res) => {
 			if (req.query[key]) {
 				if (key === "holdBy") {
 					query[key] = new mongoose.Types.ObjectId(req.query[key]);
-				} else if (typeof req.query[key] === "string" && ["performer", "location", "roll", "seat", "bot", "status"].includes(key)) {
+				} else if (typeof req.query[key] === "string" && ["performer", "location", "row", "seat", "bot", "status"].includes(key)) {
 					query[key] = new RegExp(req.query[key], "i");
 				} else {
 					query[key] = req.query[key];
@@ -52,6 +60,28 @@ const getAllTickets = async (req, res) => {
 		res.json(tickets);
 	} catch (error) {
 		res.status(500).json({ message: "Error fetching tickets", error: error.message });
+	}
+};
+
+// PATCH /api/tickets/:id/hold
+const holdTicket = async (req, res) => {
+	try {
+		const ticket = await Ticket.findById(req.params.id);
+		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+		if (ticket.status === "hold") {
+			return res.status(400).json({ message: "Ticket is already on hold" });
+		}
+
+		ticket.status = "hold";
+		ticket.holdBy = req.user._id;
+		ticket.holdDate = new Date();
+		ticket.updatedBy = getUserId(req);
+
+		await ticket.save();
+		res.json({ message: "Ticket held successfully", ticket });
+	} catch (error) {
+		res.status(500).json({ message: "Error holding ticket", error: error.message });
 	}
 };
 
@@ -68,7 +98,7 @@ const unholdTicket = async (req, res) => {
 		ticket.status = "pending";
 		ticket.holdBy = undefined;
 		ticket.holdDate = undefined;
-		ticket.updatedBy = req.user?._id || null;
+		ticket.updatedBy = getUserId(req);
 
 		await ticket.save();
 		res.json({ message: "Ticket unheld successfully", ticket });
@@ -80,10 +110,16 @@ const unholdTicket = async (req, res) => {
 // DELETE /api/tickets/:id
 const deleteTicket = async (req, res) => {
 	try {
-		const ticket = await Ticket.findByIdAndDelete(req.params.id);
+		const ticket = await Ticket.findById(req.params.id);
 		if (!ticket) {
 			return res.status(404).json({ message: "Ticket not found" });
 		}
+
+		ticket.isDeleted = true;
+		ticket.deletedBy = req.user._id;
+		ticket.deletedAt = new Date();
+
+		await ticket.save();
 		res.json({ message: "Ticket deleted successfully", ticket });
 	} catch (error) {
 		res.status(500).json({ message: "Error deleting ticket", error: error.message });
@@ -93,6 +129,7 @@ const deleteTicket = async (req, res) => {
 module.exports = {
 	createTicket,
 	getAllTickets,
+	holdTicket,
 	unholdTicket,
 	deleteTicket,
 };
