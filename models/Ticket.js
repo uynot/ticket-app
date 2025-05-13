@@ -45,11 +45,13 @@ const ticketSchema = new mongoose.Schema(
 		soldPrice: {
 			type: Number,
 			default: 0,
+			required: false,
 		},
 		status: {
 			type: String,
 			enum: ["pending", "hold", "sold"],
 			default: "pending",
+			required: false,
 		},
 		holdBy: {
 			type: mongoose.Schema.Types.ObjectId,
@@ -60,11 +62,22 @@ const ticketSchema = new mongoose.Schema(
 			type: Date,
 			required: false,
 		},
+		holdExpireDuration: {
+			type: Number, // minute
+			default: 4320,
+			required: false,
+		},
 		profit: {
 			type: Number,
 			default: 0,
+			required: false,
 		},
 		createdBy: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
+		},
+		updatedBy: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "User",
 		},
