@@ -47,6 +47,15 @@ const ticketSchema = new mongoose.Schema(
 			default: 0,
 			required: false,
 		},
+		soldBy: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "User",
+			required: false,
+		},
+		soldDate: {
+			type: Date,
+			required: false,
+		},
 		status: {
 			type: String,
 			enum: ["pending", "hold", "sold"],
@@ -96,6 +105,10 @@ const ticketSchema = new mongoose.Schema(
 		updatedBy: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "User",
+			required: false,
+		},
+		updatedDate: {
+			type: Date,
 			required: false,
 		},
 	},

@@ -1,4 +1,5 @@
 const Ticket = require("../models/Ticket");
+const mongoose = require("mongoose");
 
 const getUserId = (req) => req.user?._id || null;
 
@@ -8,7 +9,9 @@ const createTicket = async (req, res) => {
 		const ticketData = {
 			...req.body,
 			createdBy: getUserId(req),
-			updatedBy: getUserId(req),
+			createdDate: new Date(),
+			// updatedBy: getUserId(req),
+			// updatedDate: new Date(),
 		};
 
 		const ticket = await Ticket.create(ticketData);
@@ -22,6 +25,7 @@ const createTicket = async (req, res) => {
 const getAllTickets = async (req, res) => {
 	try {
 		const query = { isDeleted: false };
+
 		const allowedFilters = [
 			"performer",
 			"date",
@@ -33,20 +37,22 @@ const getAllTickets = async (req, res) => {
 			"pickupDate",
 			"bot",
 			"soldPrice",
+			"soldBy",
+			"soldDate",
 			"status",
 			"holdBy",
 			"holdDate",
 			"holdExpireDuration",
-			"profit",
 			"createdBy",
 			"updatedBy",
+			"updatedDate",
+			"deletedBy",
+			"deletedAt",
 		];
-
-		const mongoose = require("mongoose");
 
 		allowedFilters.forEach((key) => {
 			if (req.query[key]) {
-				if (key === "holdBy") {
+				if (["holdBy", "soldBy", "createdBy", "updatedBy", "deletedBy"].includes(key)) {
 					query[key] = new mongoose.Types.ObjectId(req.query[key]);
 				} else if (typeof req.query[key] === "string" && ["performer", "location", "row", "seat", "bot", "status"].includes(key)) {
 					query[key] = new RegExp(req.query[key], "i");
@@ -60,6 +66,29 @@ const getAllTickets = async (req, res) => {
 		res.json(tickets);
 	} catch (error) {
 		res.status(500).json({ message: "Error fetching tickets", error: error.message });
+	}
+};
+
+// PATCH /api/tickets/:id/sold
+const markTicketSold = async (req, res) => {
+	try {
+		const ticket = await Ticket.findById(req.params.id);
+		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+		if (ticket.status === "sold") {
+			return res.status(400).json({ message: "Ticket is already sold" });
+		}
+
+		ticket.status = "sold";
+		ticket.soldBy = req.user._id;
+		ticket.soldDate = new Date();
+		ticket.updatedBy = getUserId(req);
+		ticket.updatedDate = new Date();
+
+		await ticket.save();
+		res.json({ message: "Ticket marked as sold", ticket });
+	} catch (error) {
+		res.status(500).json({ message: "Error marking ticket as sold", error: error.message });
 	}
 };
 
@@ -77,6 +106,7 @@ const holdTicket = async (req, res) => {
 		ticket.holdBy = req.user._id;
 		ticket.holdDate = new Date();
 		ticket.updatedBy = getUserId(req);
+		ticket.updatedDate = new Date();
 
 		await ticket.save();
 		res.json({ message: "Ticket held successfully", ticket });
@@ -99,6 +129,7 @@ const unholdTicket = async (req, res) => {
 		ticket.holdBy = undefined;
 		ticket.holdDate = undefined;
 		ticket.updatedBy = getUserId(req);
+		ticket.updatedDate = new Date();
 
 		await ticket.save();
 		res.json({ message: "Ticket unheld successfully", ticket });
@@ -117,7 +148,9 @@ const deleteTicket = async (req, res) => {
 
 		ticket.isDeleted = true;
 		ticket.deletedBy = req.user._id;
-		ticket.deletedAt = new Date();
+		ticket.deletedDate = new Date();
+		ticket.updatedBy = getUserId(req);
+		ticket.updatedDate = new Date();
 
 		await ticket.save();
 		res.json({ message: "Ticket deleted successfully", ticket });
@@ -129,6 +162,7 @@ const deleteTicket = async (req, res) => {
 module.exports = {
 	createTicket,
 	getAllTickets,
+	markTicketSold,
 	holdTicket,
 	unholdTicket,
 	deleteTicket,
