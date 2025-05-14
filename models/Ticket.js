@@ -102,6 +102,10 @@ const ticketSchema = new mongoose.Schema(
 			ref: "User",
 			required: false,
 		},
+		createdDate: {
+			type: Date,
+			required: false,
+		},
 		updatedBy: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "User",
