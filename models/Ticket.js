@@ -28,7 +28,7 @@ const ticketSchema = new mongoose.Schema(
 		},
 		price: {
 			type: Number,
-			required: true, // 原價
+			required: true, // official price
 		},
 		pickupDate: {
 			type: Date,
@@ -92,7 +92,7 @@ const ticketSchema = new mongoose.Schema(
 			default: null,
 			required: false,
 		},
-		deletedAt: {
+		deletedDate: {
 			type: Date,
 			default: null,
 			required: false,

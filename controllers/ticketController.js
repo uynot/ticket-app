@@ -44,6 +44,7 @@ const getAllTickets = async (req, res) => {
 			"holdDate",
 			"holdExpireDuration",
 			"createdBy",
+			"createdDate",
 			"updatedBy",
 			"updatedDate",
 			"deletedBy",
