@@ -70,6 +70,41 @@ const getAllTickets = async (req, res) => {
 	}
 };
 
+const editTicketDetail = async (req, res) => {
+	try {
+		const ticket = await Ticket.findById(req.params.id);
+		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+		const editableFields = [
+			"performer",
+			"date",
+			"location",
+			"row",
+			"seat",
+			"isConsecutive",
+			"price",
+			"pickupDate",
+			"bot",
+			"remark",
+			"holdExpireDuration",
+		];
+
+		editableFields.forEach((field) => {
+			if (req.body[field] !== undefined) {
+				ticket[field] = req.body[field];
+			}
+		});
+
+		ticket.updatedBy = req.user._id;
+		ticket.updatedDate = new Date();
+
+		await ticket.save();
+		res.json({ message: "Ticket updated successfully", ticket });
+	} catch (error) {
+		res.status(500).json({ message: "Error updating ticket", error: error.message });
+	}
+};
+
 // PATCH /api/tickets/:id/sold
 const markTicketSold = async (req, res) => {
 	try {
@@ -163,6 +198,7 @@ const deleteTicket = async (req, res) => {
 module.exports = {
 	createTicket,
 	getAllTickets,
+	editTicketDetail,
 	markTicketSold,
 	holdTicket,
 	unholdTicket,
