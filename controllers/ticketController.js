@@ -70,24 +70,13 @@ const getAllTickets = async (req, res) => {
 	}
 };
 
+// PATCH /api/tickets/:id/edit
 const editTicketDetail = async (req, res) => {
 	try {
 		const ticket = await Ticket.findById(req.params.id);
 		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
-		const editableFields = [
-			"performer",
-			"date",
-			"location",
-			"row",
-			"seat",
-			"isConsecutive",
-			"price",
-			"pickupDate",
-			"bot",
-			"remark",
-			"holdExpireDuration",
-		];
+		const editableFields = ["performer", "date", "location", "row", "seat", "isConsecutive", "price", "pickupDate", "bot", "remark"];
 
 		editableFields.forEach((field) => {
 			if (req.body[field] !== undefined) {
@@ -129,6 +118,7 @@ const markTicketSold = async (req, res) => {
 };
 
 // PATCH /api/tickets/:id/hold
+// param: holdExpireDuration
 const holdTicket = async (req, res) => {
 	try {
 		const ticket = await Ticket.findById(req.params.id);
@@ -143,6 +133,10 @@ const holdTicket = async (req, res) => {
 		ticket.holdDate = new Date();
 		ticket.updatedBy = getUserId(req);
 		ticket.updatedDate = new Date();
+
+		if (req.body.holdExpireDuration) {
+			ticket.holdExpireDuration = req.body.holdExpireDuration;
+		}
 
 		await ticket.save();
 		res.json({ message: "Ticket held successfully", ticket });

@@ -14,12 +14,12 @@ app.use(express.json());
 //routes
 const ticketRoutes = require("./routes/ticketRoutes");
 // const userRoutes = require("./routes/userRoutes");
-// const authRoutes = require("./routes/authRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 //use routes
 app.use("/api/tickets", ticketRoutes);
 // app.use("/api/users", userRoutes);
-// app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 
 // start server
 app.get("/", (req, res) => res.send("API Running"));

@@ -15,7 +15,7 @@ const isAdmin = require("../middleware/isAdmin");
 // auth
 
 // ticket
-router.post("/", protect, createTicket);
+router.post("/", protect, isAdmin, createTicket);
 router.get("/", getAllTickets);
 router.patch("/:id/edit", protect, isAdmin, editTicketDetail);
 router.patch("/:id/sold", protect, holdTicket);
