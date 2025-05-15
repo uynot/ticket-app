@@ -91,7 +91,6 @@ const editTicketDetail = async (req, res) => {
 			"soldDate",
 			"holdDate",
 			"holdExpireDuration",
-			"profit",
 		];
 
 		let isModified = false;

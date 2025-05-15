@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
 	{ timestamps: false }
 );
 
+ticketSchema.set("versionKey", false);
+
 // encrypt
 userSchema.pre("save", async function (next) {
 	if (!this.isModified("password")) return next();

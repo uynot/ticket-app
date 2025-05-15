@@ -121,6 +121,8 @@ const ticketSchema = new mongoose.Schema(
 	}
 );
 
+ticketSchema.set("versionKey", false);
+
 ticketSchema.pre("save", function (next) {
 	if (this.soldPrice && this.price) {
 		this.profit = this.soldPrice - this.price;
