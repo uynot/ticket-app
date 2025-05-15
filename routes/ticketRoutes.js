@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const upload = require("../middleware/uploadMiddleware");
 const {
 	createTicket,
 	getAllTickets,
@@ -10,6 +11,7 @@ const {
 	unholdTicket,
 	deleteTicket,
 	undeleteTicket,
+	importTickets,
 } = require("../controllers/ticketController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -27,5 +29,6 @@ router.patch("/:id/hold", protect, holdTicket);
 router.patch("/:id/unhold", protect, isAdmin, unholdTicket);
 router.patch("/:id/delete", protect, isAdmin, deleteTicket);
 router.patch("/:id/undelete", protect, isAdmin, undeleteTicket);
+router.post("/import", protect, isAdmin, upload.single("file"), importTickets);
 
 module.exports = router;
