@@ -6,18 +6,18 @@ const getUserId = (req) => req.user?._id || null;
 // POST /api/tickets
 const createTicket = async (req, res) => {
 	try {
-		const ticketData = {
-			...req.body,
+		const ticketsInput = Array.isArray(req.body) ? req.body : [req.body];
+
+		const ticketsData = ticketsInput.map((ticket) => ({
+			...ticket,
 			createdBy: getUserId(req),
 			createdDate: new Date(),
-			// updatedBy: getUserId(req),
-			// updatedDate: new Date(),
-		};
+		}));
 
-		const ticket = await Ticket.create(ticketData);
-		res.status(201).json(ticket);
+		const tickets = await Ticket.insertMany(ticketsData);
+		res.status(201).json({ message: "Ticket(s) created", count: tickets.length, tickets });
 	} catch (error) {
-		res.status(400).json({ message: error.message });
+		res.status(400).json({ message: "Error creating tickets", error: error.message });
 	}
 };
 
