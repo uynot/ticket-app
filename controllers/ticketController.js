@@ -76,26 +76,48 @@ const editTicketDetail = async (req, res) => {
 		const ticket = await Ticket.findById(req.params.id);
 		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
-		const editableFields = ["performer", "date", "location", "row", "seat", "isConsecutive", "price", "pickupDate", "bot", "remark"];
+		const editableFields = [
+			"performer",
+			"date",
+			"location",
+			"row",
+			"seat",
+			"isConsecutive",
+			"price",
+			"pickupDate",
+			"bot",
+			"remark",
+			"soldPrice",
+			"soldDate",
+			"holdDate",
+			"holdExpireDuration",
+		];
+
+		let isModified = false;
 
 		editableFields.forEach((field) => {
-			if (req.body[field] !== undefined) {
+			if (req.body[field] !== undefined && ticket[field] !== req.body[field]) {
 				ticket[field] = req.body[field];
+				isModified = true;
 			}
 		});
 
-		ticket.updatedBy = req.user._id;
-		ticket.updatedDate = new Date();
-
-		await ticket.save();
-		res.json({ message: "Ticket updated successfully", ticket });
+		if (isModified) {
+			ticket.updatedBy = req.user._id;
+			ticket.updatedDate = new Date();
+			await ticket.save();
+			res.json({ message: "Ticket updated successfully", ticket });
+		} else {
+			res.status(400).json({ message: "No fields to update" });
+		}
 	} catch (error) {
 		res.status(500).json({ message: "Error updating ticket", error: error.message });
 	}
 };
 
 // PATCH /api/tickets/:id/sold
-const markTicketSold = async (req, res) => {
+// param: soldPrice in JSON
+const soldTicket = async (req, res) => {
 	try {
 		const ticket = await Ticket.findById(req.params.id);
 		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
@@ -104,10 +126,23 @@ const markTicketSold = async (req, res) => {
 			return res.status(400).json({ message: "Ticket is already sold" });
 		}
 
+		// admin override
+		const isAdmin = req.user.role === "admin";
+		if (!isAdmin && ticket.holdBy?.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ message: "You are not the holder of this ticket" });
+		}
+
+		const { soldPrice } = req.body;
+		if (typeof soldPrice !== "number" || soldPrice <= 0) {
+			return res.status(400).json({ message: "Invalid soldPrice" });
+		}
+
 		ticket.status = "sold";
 		ticket.soldBy = req.user._id;
 		ticket.soldDate = new Date();
-		ticket.updatedBy = getUserId(req);
+		ticket.soldPrice = soldPrice;
+		ticket.profit = soldPrice - ticket.price;
+		ticket.updatedBy = req.user._id;
 		ticket.updatedDate = new Date();
 
 		await ticket.save();
@@ -118,7 +153,7 @@ const markTicketSold = async (req, res) => {
 };
 
 // PATCH /api/tickets/:id/hold
-// param: holdExpireDuration
+// param: holdExpireDuration in JSON
 const holdTicket = async (req, res) => {
 	try {
 		const ticket = await Ticket.findById(req.params.id);
@@ -216,7 +251,7 @@ module.exports = {
 	createTicket,
 	getAllTickets,
 	editTicketDetail,
-	markTicketSold,
+	soldTicket,
 	holdTicket,
 	unholdTicket,
 	deleteTicket,
