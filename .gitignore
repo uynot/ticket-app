@@ -1,2 +1,4 @@
 .env
 .aider*
+node_modules/
+uploads/
