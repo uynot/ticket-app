@@ -283,77 +283,111 @@ const importTickets = async (req, res) => {
 			return res.status(400).json({ message: "No file uploaded" });
 		}
 
+		const rawRows = [];
 		const tickets = [];
 		const errors = [];
 		const warnings = [];
+		const seenKeys = new Set(); // for detecting duplicates in the same file
 
 		fs.createReadStream(req.file.path)
 			.pipe(csv())
-			.on("data", (row) => {
-				try {
+			.on("data", (row) => rawRows.push(row))
+			.on("end", async () => {
+				for (const row of rawRows) {
+					const rowErrors = [];
+					const rowWarnings = [];
+
+					// validate required fields
 					const requiredFields = ["performer", "date", "location", "row", "seat", "price"];
 					for (const field of requiredFields) {
-						if (!row[field]) throw new Error(`Missing required field: ${field}`);
+						if (!row[field]) rowErrors.push(`Missing required field: ${field}`);
 					}
 
 					const price = Number(row.price);
-					if (isNaN(price)) throw new Error("Invalid price");
+					if (isNaN(price)) rowErrors.push("Invalid price");
 
 					const soldPrice = Number(row.soldPrice || 0);
 					const status = (row.status || "pending").toLowerCase();
 					const validStatuses = ["pending", "sold", "on hold"];
-					if (!validStatuses.includes(status)) throw new Error(`Invalid status: ${row.status}`);
+					if (!validStatuses.includes(status)) rowErrors.push(`Invalid status: ${row.status}`);
 
 					const isSold = status === "sold";
 					const isHold = status === "on hold";
 
 					const soldDate = row.soldDate ? new Date(row.soldDate) : null;
 					if (isSold) {
-						if (!soldPrice || isNaN(soldPrice)) throw new Error("Missing or invalid soldPrice");
-						if (!soldDate || isNaN(soldDate)) throw new Error("Missing or invalid soldDate");
+						if (!soldPrice || isNaN(soldPrice)) rowErrors.push("Missing or invalid soldPrice");
+						if (!soldDate || isNaN(soldDate)) rowErrors.push("Missing or invalid soldDate");
 					}
 
 					const holdDate = row.holdDate ? new Date(row.holdDate) : null;
 					if (isHold && (!holdDate || isNaN(holdDate))) {
-						warnings.push({ row, warning: "Ticket is on hold but holdDate is invalid" });
+						rowWarnings.push("Ticket is on hold but holdDate is invalid");
 					}
 
-					const holdExpireDuration = row.holdExpireDuration ? Number(row.holdExpireDuration) : 4320;
+					let holdExpireDuration = row.holdExpireDuration ? Number(row.holdExpireDuration) : 4320;
 					if (isNaN(holdExpireDuration)) {
-						warnings.push({
-							row,
-							warning: "Invalid holdExpireDuration, defaulted to 4320 minutes",
+						rowWarnings.push("Invalid holdExpireDuration, defaulted to 4320");
+						holdExpireDuration = 4320;
+					}
+
+					// duplicate in same file
+					const uniqueKey = `${row.performer}-${row.seat}-${row.date}`;
+					if (seenKeys.has(uniqueKey)) {
+						rowWarnings.push("Duplicate ticket in CSV (same performer + seat + date), skipped");
+					}
+					seenKeys.add(uniqueKey);
+
+					// check DB for duplicates
+					const alreadyExists = await Ticket.exists({
+						performer: row.performer,
+						seat: row.seat,
+						date: new Date(row.date),
+					});
+					if (alreadyExists) {
+						rowWarnings.push("Ticket already exists in database, skipped");
+					}
+
+					// skip if error
+					if (rowErrors.length > 0) {
+						errors.push({ row, errors: rowErrors });
+						continue;
+					}
+
+					// still record warnings
+					if (rowWarnings.length > 0) {
+						warnings.push({ row, warnings: rowWarnings });
+					}
+
+					if (!alreadyExists) {
+						tickets.push({
+							performer: row.performer,
+							date: new Date(row.date),
+							location: row.location,
+							row: row.row,
+							seat: row.seat,
+							isConsecutive: row.isConsecutive === "true",
+							price,
+							pickupDate: row.pickupDate ? new Date(row.pickupDate) : undefined,
+							bot: row.bot || "",
+							remark: row.remark || "",
+							status,
+							soldPrice: isSold ? soldPrice : 0,
+							soldBy: isSold ? req.user._id : undefined,
+							soldDate: isSold ? soldDate : undefined,
+							holdBy: isHold ? req.user._id : undefined,
+							holdDate: isHold ? holdDate : undefined,
+							holdExpireDuration,
+							profit: isSold ? soldPrice - price : 0,
+							createdBy: req.user._id,
+							createdDate: new Date(),
 						});
 					}
-
-					tickets.push({
-						performer: row.performer,
-						date: new Date(row.date),
-						location: row.location,
-						row: row.row,
-						seat: row.seat,
-						isConsecutive: row.isConsecutive === "true",
-						price,
-						pickupDate: row.pickupDate ? new Date(row.pickupDate) : undefined,
-						bot: row.bot || "",
-						remark: row.remark || "",
-						status,
-						soldPrice: isSold ? soldPrice : 0,
-						soldBy: isSold && row.soldBy ? req.user._id : undefined,
-						soldDate: isSold ? soldDate : undefined,
-						holdBy: isHold && row.holdBy ? req.user._id : undefined,
-						holdDate: isHold ? holdDate : undefined,
-						holdExpireDuration: isNaN(holdExpireDuration) ? 4320 : holdExpireDuration,
-						profit: isSold ? soldPrice - price : 0,
-						createdBy: req.user._id,
-						createdDate: new Date(),
-					});
-				} catch (err) {
-					errors.push({ row, error: err.message });
 				}
-			})
-			.on("end", async () => {
-				await Ticket.insertMany(tickets);
+
+				if (tickets.length > 0) {
+					await Ticket.insertMany(tickets);
+				}
 				fs.unlinkSync(req.file.path);
 
 				res.json({
