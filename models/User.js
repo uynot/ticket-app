@@ -8,10 +8,8 @@ const userSchema = new mongoose.Schema(
 		password: { type: String, required: true },
 		role: { type: String, enum: ["user", "admin"], default: "user" },
 	},
-	{ timestamps: false }
+	{ timestamps: false, versionKey: false }
 );
-
-ticketSchema.set("versionKey", false);
 
 // encrypt
 userSchema.pre("save", async function (next) {

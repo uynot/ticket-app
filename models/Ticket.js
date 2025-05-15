@@ -118,10 +118,9 @@ const ticketSchema = new mongoose.Schema(
 	},
 	{
 		timestamps: false,
+		versionKey: false,
 	}
 );
-
-ticketSchema.set("versionKey", false);
 
 ticketSchema.pre("save", function (next) {
 	if (this.soldPrice && this.price) {
