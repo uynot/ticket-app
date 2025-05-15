@@ -118,13 +118,17 @@ const editTicketDetail = async (req, res) => {
 
 // PATCH /api/tickets/:id/sold
 // param: soldPrice in JSON
-const markTicketSold = async (req, res) => {
+const soldTicket = async (req, res) => {
 	try {
 		const ticket = await Ticket.findById(req.params.id);
 		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
 		if (ticket.status === "sold") {
 			return res.status(400).json({ message: "Ticket is already sold" });
+		}
+
+		if (!ticket.holdBy || ticket.holdBy.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ message: "You are not the holder of this ticket" });
 		}
 
 		const { soldPrice } = req.body;
@@ -136,10 +140,7 @@ const markTicketSold = async (req, res) => {
 		ticket.soldBy = req.user._id;
 		ticket.soldDate = new Date();
 		ticket.soldPrice = soldPrice;
-
-		//update profit
 		ticket.profit = soldPrice - ticket.price;
-
 		ticket.updatedBy = req.user._id;
 		ticket.updatedDate = new Date();
 
@@ -249,7 +250,7 @@ module.exports = {
 	createTicket,
 	getAllTickets,
 	editTicketDetail,
-	markTicketSold,
+	soldTicket,
 	holdTicket,
 	unholdTicket,
 	deleteTicket,

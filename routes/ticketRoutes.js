@@ -3,10 +3,11 @@ const router = express.Router();
 const {
 	createTicket,
 	getAllTickets,
+	editTicketDetail,
+	soldTicket,
 	holdTicket,
 	unholdTicket,
 	deleteTicket,
-	editTicketDetail,
 	undeleteTicket,
 } = require("../controllers/ticketController");
 
@@ -19,7 +20,7 @@ const isAdmin = require("../middleware/isAdmin");
 router.post("/", protect, isAdmin, createTicket);
 router.get("/", getAllTickets); // protect,
 router.patch("/:id/edit", protect, isAdmin, editTicketDetail);
-router.patch("/:id/sold", protect, holdTicket);
+router.patch("/:id/sold", protect, soldTicket);
 router.patch("/:id/hold", protect, holdTicket);
 router.patch("/:id/unhold", protect, isAdmin, unholdTicket);
 router.delete("/:id", protect, isAdmin, deleteTicket);
