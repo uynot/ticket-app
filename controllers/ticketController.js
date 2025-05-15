@@ -152,6 +152,31 @@ const soldTicket = async (req, res) => {
 	}
 };
 
+// PATCH /api/tickets/:id/unsold
+const unsoldTicket = async (req, res) => {
+	try {
+		const ticket = await Ticket.findById(req.params.id);
+		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+		if (ticket.status !== "sold") {
+			return res.status(400).json({ message: "Ticket is not marked as sold" });
+		}
+
+		ticket.status = "on hold";
+		ticket.soldBy = null;
+		ticket.soldDate = null;
+		ticket.soldPrice = 0;
+		ticket.profit = 0;
+		ticket.updatedBy = getUserId(req);
+		ticket.updatedDate = new Date();
+
+		await ticket.save();
+		res.json({ message: "Ticket unsold successfully", ticket });
+	} catch (error) {
+		res.status(500).json({ message: "Error unselling ticket", error: error.message });
+	}
+};
+
 // PATCH /api/tickets/:id/hold
 // param: holdExpireDuration in JSON
 const holdTicket = async (req, res) => {
@@ -159,11 +184,11 @@ const holdTicket = async (req, res) => {
 		const ticket = await Ticket.findById(req.params.id);
 		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
-		if (ticket.status === "hold") {
+		if (ticket.status === "on hold") {
 			return res.status(400).json({ message: "Ticket is already on hold" });
 		}
 
-		ticket.status = "hold";
+		ticket.status = "on hold";
 		ticket.holdBy = getUserId(req);
 		ticket.holdDate = new Date();
 		ticket.updatedBy = getUserId(req);
@@ -184,7 +209,7 @@ const unholdTicket = async (req, res) => {
 		const ticket = await Ticket.findById(req.params.id);
 		if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
-		if (ticket.status !== "hold") {
+		if (ticket.status !== "on hold") {
 			return res.status(400).json({ message: "Ticket is not on hold" });
 		}
 
@@ -201,7 +226,7 @@ const unholdTicket = async (req, res) => {
 	}
 };
 
-// DELETE /api/tickets/:id
+// PATCH /api/tickets/:id
 const deleteTicket = async (req, res) => {
 	try {
 		const ticket = await Ticket.findById(req.params.id);
@@ -256,4 +281,5 @@ module.exports = {
 	unholdTicket,
 	deleteTicket,
 	undeleteTicket,
+	unsoldTicket,
 };

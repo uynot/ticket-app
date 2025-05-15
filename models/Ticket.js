@@ -58,7 +58,7 @@ const ticketSchema = new mongoose.Schema(
 		},
 		status: {
 			type: String,
-			enum: ["pending", "hold", "sold"],
+			enum: ["pending", "on hold", "sold"],
 			default: "pending",
 			required: false,
 		},
