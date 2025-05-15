@@ -7,6 +7,7 @@ const {
 	unholdTicket,
 	deleteTicket,
 	editTicketDetail,
+	undeleteTicket,
 } = require("../controllers/ticketController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -22,5 +23,6 @@ router.patch("/:id/sold", protect, holdTicket);
 router.patch("/:id/hold", protect, holdTicket);
 router.patch("/:id/unhold", protect, isAdmin, unholdTicket);
 router.delete("/:id", protect, isAdmin, deleteTicket);
+router.patch("/:id/undelete", protect, isAdmin, undeleteTicket);
 
 module.exports = router;

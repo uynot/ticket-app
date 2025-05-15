@@ -129,14 +129,12 @@ const holdTicket = async (req, res) => {
 		}
 
 		ticket.status = "hold";
-		ticket.holdBy = req.user._id;
+		ticket.holdBy = getUserId(req);
 		ticket.holdDate = new Date();
 		ticket.updatedBy = getUserId(req);
 		ticket.updatedDate = new Date();
 
-		if (req.body.holdExpireDuration) {
-			ticket.holdExpireDuration = req.body.holdExpireDuration;
-		}
+		ticket.holdExpireDuration = req.body.holdExpireDuration || 4320;
 
 		await ticket.save();
 		res.json({ message: "Ticket held successfully", ticket });
@@ -189,6 +187,31 @@ const deleteTicket = async (req, res) => {
 	}
 };
 
+// PATCH /api/tickets/:id/undelete
+const undeleteTicket = async (req, res) => {
+	try {
+		const ticket = await Ticket.findById(req.params.id);
+		if (!ticket) {
+			return res.status(404).json({ message: "Ticket not found" });
+		}
+
+		if (!ticket.isDeleted) {
+			return res.status(400).json({ message: "Ticket is not deleted" });
+		}
+
+		ticket.isDeleted = false;
+		ticket.deletedBy = null;
+		ticket.deletedDate = null;
+		ticket.updatedBy = getUserId(req);
+		ticket.updatedDate = new Date();
+
+		await ticket.save();
+		res.json({ message: "Ticket undeleted successfully", ticket });
+	} catch (error) {
+		res.status(500).json({ message: "Error undeleting ticket", error: error.message });
+	}
+};
+
 module.exports = {
 	createTicket,
 	getAllTickets,
@@ -197,4 +220,5 @@ module.exports = {
 	holdTicket,
 	unholdTicket,
 	deleteTicket,
+	undeleteTicket,
 };

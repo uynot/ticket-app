@@ -11,17 +11,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-//routes
+//  routes
 const ticketRoutes = require("./routes/ticketRoutes");
-// const userRoutes = require("./routes/userRoutes");
+//const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
 
-//use routes
+//  use routes
 app.use("/api/tickets", ticketRoutes);
-// app.use("/api/users", userRoutes);
+//app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 
-// start server
+//start server
 app.get("/", (req, res) => res.send("API Running"));
 
 const PORT = process.env.PORT || 5000;
