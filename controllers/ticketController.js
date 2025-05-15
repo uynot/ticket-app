@@ -127,7 +127,9 @@ const soldTicket = async (req, res) => {
 			return res.status(400).json({ message: "Ticket is already sold" });
 		}
 
-		if (!ticket.holdBy || ticket.holdBy.toString() !== req.user._id.toString()) {
+		// admin override
+		const isAdmin = req.user.role === "admin";
+		if (!isAdmin && ticket.holdBy?.toString() !== req.user._id.toString()) {
 			return res.status(403).json({ message: "You are not the holder of this ticket" });
 		}
 
